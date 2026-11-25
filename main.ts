@@ -21,11 +21,16 @@ function checkSize(s: string): void {
   }
 }
 
-// It must carry real text and stay on one line.
-function checkForm(s: string): void {
+// A line of pure whitespace is not a real entry.
+function checkBlank(s: string): void {
   if (s.trim() === "") {
     throw new Error("nothing but spaces: the entry has no real text");
   }
+}
+
+// It must carry real text and stay on one line.
+function checkForm(s: string): void {
+  checkBlank(s);
   if (/[\r\n]/.test(s)) {
     throw new Error("one line only: the entry contains a line break");
   }
