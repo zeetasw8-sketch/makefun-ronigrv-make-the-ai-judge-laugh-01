@@ -1,33 +1,39 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+// Takes the finished one-liner from line.txt, verifies it fits the rules,
+// and copies it byte-for-byte into entry.txt for the scorer.
+import { mkdirSync as makeDir, readFileSync as readText, writeFileSync as writeText } from "node:fs";
+import { join as joinPath } from "node:path";
 
-const dir = dirname(fileURLToPath(import.meta.url));
+// Folder this script lives in, pulled straight from its module URL.
+const here = new URL(".", import.meta.url).pathname;
 
-let text = readFileSync(join(dir, "line.txt"), "utf8");
+let content = readText(joinPath(here, "line.txt"), "utf8");
 
-// Strip a single trailing newline from line.txt (if present) before writing.
-if (text.endsWith("\n")) {
-  text = text.slice(0, -1);
-}
-if (text.endsWith("\r")) {
-  text = text.slice(0, -1);
-}
+// Shave off a single line break at the end when the file has one.
+content = content.replace(/\n$/, "").replace(/\r$/, "");
 
-function validateLine(text: string): void {
-  if (text.length < 1 || text.length > 200) {
-    throw new Error(`line must be 1-200 characters, got ${text.length}`);
+// The line has to be present and fit the 200-character ceiling.
+function checkSize(s: string): void {
+  if (s.length === 0) {
+    throw new Error("nothing to submit: line.txt came back empty");
   }
-  if (text.trim().length === 0) {
-    throw new Error("line must not be only whitespace");
-  }
-  if (text.includes("\n") || text.includes("\r")) {
-    throw new Error("line must be a single line");
+  if (s.length > 200) {
+    throw new Error(`too long to submit: ${s.length} characters, ceiling is 200`);
   }
 }
 
-validateLine(text);
+// It must carry real text and stay on one line.
+function checkForm(s: string): void {
+  if (s.trim() === "") {
+    throw new Error("nothing but spaces: the entry has no real text");
+  }
+  if (/[\r\n]/.test(s)) {
+    throw new Error("one line only: the entry contains a line break");
+  }
+}
 
-const outDir = process.env.MAKEFUN_OUTPUT_DIR || "/output";
-mkdirSync(outDir, { recursive: true });
-writeFileSync(join(outDir, "entry.txt"), text, "utf8");
+checkSize(content);
+checkForm(content);
+
+const target = process.env.MAKEFUN_OUTPUT_DIR || "/output";
+makeDir(target, { recursive: true });
+writeText(joinPath(target, "entry.txt"), content, "utf8");
